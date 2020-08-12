@@ -1,7 +1,8 @@
 import React from 'react';
 import { Grid, Form, Segment, Button, Header, Message, Icon } from 'semantic-ui-react';
 import { Link } from 'react-router-dom';
-import firebase from '../../firebase'
+import firebase from '../../firebase';
+import md5 from 'md5';
 
 
 class Register extends React.Component {
@@ -12,7 +13,8 @@ class Register extends React.Component {
         password: '',
         passwordConfirmation: '',
         errors: [],
-        loading: false
+        loading: false,
+        usersRef: firebase.database().ref('users')
     };
 
     isFormValid = () => {
@@ -53,14 +55,22 @@ class Register extends React.Component {
     displayErrors = errors => errors.map((error, i) => <p key={i}>{error.message}</p>)
 
     handleInputError = (errors, inputName) => {
-        return errors.some(error => 
-             error.message.toLowerCase().includes(inputName)
-            ) ? "error" : ""
+        return errors.some(error =>
+            error.message.toLowerCase().includes(inputName)
+        ) ? "error" : ""
     }
 
     handleChange = event => {
         this.setState({ [event.target.name]: event.target.value });
     }
+
+    saveUser = createdUser => {
+        return this.state.usersRef.child(createdUser.user.uid).set({
+            name: createdUser.user.displayName,
+            avatar: createdUser.user.photoURL
+        })
+    }
+
 
     handleSubmit = event => {
         event.preventDefault();
@@ -71,7 +81,21 @@ class Register extends React.Component {
                 .createUserWithEmailAndPassword(this.state.email, this.state.password)
                 .then(createdUser => {
                     console.log(createdUser);
-                    this.setState({ loading: false })
+                    createdUser.user.updateProfile({
+                        displayName: this.state.username,
+                        photoURL: `http://gravatar.com/avatar/${md5(createdUser.user.email)}?d=identicon`
+                    })
+                        .then(() => {
+                            this.saveUser(createdUser) 
+                                .then(() => {
+                                    console.log('user saved')
+                                })
+                            // this.setState({ loading: false })
+                        })
+                        .catch(err => {
+                            console.log(err);
+                            this.setState({ errors: this.state.errors.concat(err), loading: false })
+                        })
                 })
                 .catch(err => {
                     console.log(err);
@@ -79,6 +103,7 @@ class Register extends React.Component {
                 });
         }
     }
+
 
     render() {
 
