@@ -11,7 +11,8 @@ class Register extends React.Component {
         email: '',
         password: '',
         passwordConfirmation: '',
-        errors: []
+        errors: [],
+        loading: false
     };
 
     isFormValid = () => {
@@ -49,31 +50,39 @@ class Register extends React.Component {
         }
     }
 
-displayErrors = errors => errors.map((error, i) => <p key={i}>{error.message}</p>)
+    displayErrors = errors => errors.map((error, i) => <p key={i}>{error.message}</p>)
 
+    handleInputError = (errors, inputName) => {
+        return errors.some(error => 
+             error.message.toLowerCase().includes(inputName)
+            ) ? "error" : ""
+    }
 
     handleChange = event => {
         this.setState({ [event.target.name]: event.target.value });
     }
 
     handleSubmit = event => {
+        event.preventDefault();
         if (this.isFormValid()) {
-            event.preventDefault();
+            this.setState({ errors: [], loading: true })
             firebase
                 .auth()
                 .createUserWithEmailAndPassword(this.state.email, this.state.password)
                 .then(createdUser => {
-                    console.log(createdUser)
+                    console.log(createdUser);
+                    this.setState({ loading: false })
                 })
                 .catch(err => {
-                    console.log(err)
+                    console.log(err);
+                    this.setState({ errors: this.state.errors.concat(err), loading: false })
                 });
         }
     }
 
     render() {
 
-        const { username, email, password, passwordConfirmation, errors } = this.state;
+        const { username, email, password, passwordConfirmation, errors, loading } = this.state;
 
         return (
             <Grid textAlign="center" verticalAlign="middle" className="app">
@@ -89,6 +98,7 @@ displayErrors = errors => errors.map((error, i) => <p key={i}>{error.message}</p
                                 placeholder="Username" icon="user"
                                 iconPosition="left"
                                 onChange={this.handleChange}
+                                className={this.handleInputError(errors, 'username')}
                                 value={username}
                             />
 
@@ -97,6 +107,7 @@ displayErrors = errors => errors.map((error, i) => <p key={i}>{error.message}</p
                                 placeholder="Email Address" icon="mail"
                                 iconPosition="left"
                                 onChange={this.handleChange}
+                                className={this.handleInputError(errors, 'email')}
                                 value={email}
                             />
 
@@ -104,6 +115,7 @@ displayErrors = errors => errors.map((error, i) => <p key={i}>{error.message}</p
                                 placeholder="Password" icon="lock"
                                 iconPosition="left"
                                 value={password}
+                                className={this.handleInputError(errors, 'password')}
                                 onChange={this.handleChange}
                             />
 
@@ -111,10 +123,11 @@ displayErrors = errors => errors.map((error, i) => <p key={i}>{error.message}</p
                                 placeholder="Password Confirmation"
                                 icon="repeat" iconPosition="left"
                                 value={passwordConfirmation}
+                                className={this.handleInputError(errors, 'password')}
                                 onChange={this.handleChange}
                             />
 
-                            <Button type="submit" color="orange" fluid size="large">Submit</Button>
+                            <Button disabled={loading} className={loading ? 'loading' : ''} type="submit" color="orange" fluid size="large">Submit</Button>
                         </Segment>
                     </Form>
 
